@@ -108,6 +108,7 @@ import static com.hazelcast.core.LifecycleEvent.LifecycleState.CLIENT_CHANGED_CL
 import static com.hazelcast.internal.nio.IOUtil.closeResource;
 import static com.hazelcast.internal.util.ThreadAffinity.newSystemThreadAffinity;
 import static com.hazelcast.internal.util.ExceptionUtil.rethrow;
+import static com.hazelcast.internal.util.ThreadAffinity.newSystemThreadAffinity;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 
@@ -325,8 +326,8 @@ public class TcpClientConnectionManager implements ClientConnectionManager {
         if (!isAlive.compareAndSet(true, false)) {
             return;
         }
-
-        ClientExecutionServiceImpl.shutdownExecutor("cluster", executor, logger);
+        executor.shutdownNow();
+        ClientExecutionServiceImpl.awaitExecutorTermination("cluster", executor, logger);
         for (Connection connection : activeConnections.values()) {
             connection.close("Hazelcast client is shutting down", null);
         }
@@ -457,7 +458,6 @@ public class TcpClientConnectionManager implements ClientConnectionManager {
                         return true;
                     }
                 }
-
                 // If the address providers load no addresses (which seems to be possible), then the above loop is not entered
                 // and the lifecycle check is missing, hence we need to repeat the same check at this point.
                 checkClientActive();

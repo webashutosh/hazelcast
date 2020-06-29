@@ -23,6 +23,7 @@ import com.hazelcast.internal.util.ConstructorFunction;
 import com.hazelcast.nio.serialization.DataSerializableFactory;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 import com.hazelcast.sql.impl.expression.ColumnExpression;
+import com.hazelcast.sql.impl.expression.predicate.IsNullPredicate;
 import com.hazelcast.sql.impl.extract.GenericQueryTargetDescriptor;
 import com.hazelcast.sql.impl.extract.QueryPath;
 import com.hazelcast.sql.impl.operation.QueryBatchExchangeOperation;
@@ -38,6 +39,7 @@ import com.hazelcast.sql.impl.plan.node.MapScanPlanNode;
 import com.hazelcast.sql.impl.plan.node.RootPlanNode;
 import com.hazelcast.sql.impl.plan.node.io.ReceivePlanNode;
 import com.hazelcast.sql.impl.plan.node.io.RootSendPlanNode;
+import com.hazelcast.sql.impl.row.EmptyRow;
 import com.hazelcast.sql.impl.row.EmptyRowBatch;
 import com.hazelcast.sql.impl.row.HeapRow;
 import com.hazelcast.sql.impl.row.JoinRow;
@@ -60,29 +62,31 @@ public class SqlDataSerializerHook implements DataSerializerHook {
 
     public static final int ROW_HEAP = 2;
     public static final int ROW_JOIN = 3;
-    public static final int ROW_BATCH_LIST = 4;
-    public static final int ROW_BATCH_EMPTY = 5;
+    public static final int ROW_EMPTY = 4;
+    public static final int ROW_BATCH_LIST = 5;
+    public static final int ROW_BATCH_EMPTY = 6;
 
-    public static final int OPERATION_EXECUTE = 6;
-    public static final int OPERATION_EXECUTE_FRAGMENT = 7;
-    public static final int OPERATION_BATCH = 8;
-    public static final int OPERATION_FLOW_CONTROL = 9;
-    public static final int OPERATION_CANCEL = 10;
-    public static final int OPERATION_CHECK = 11;
-    public static final int OPERATION_CHECK_RESPONSE = 12;
+    public static final int OPERATION_EXECUTE = 7;
+    public static final int OPERATION_EXECUTE_FRAGMENT = 8;
+    public static final int OPERATION_BATCH = 9;
+    public static final int OPERATION_FLOW_CONTROL = 10;
+    public static final int OPERATION_CANCEL = 11;
+    public static final int OPERATION_CHECK = 12;
+    public static final int OPERATION_CHECK_RESPONSE = 13;
 
-    public static final int NODE_ROOT = 13;
-    public static final int NODE_ROOT_SEND = 14;
-    public static final int NODE_RECEIVE = 15;
-    public static final int NODE_PROJECT = 16;
-    public static final int NODE_FILTER = 17;
-    public static final int NODE_MAP_SCAN = 18;
+    public static final int NODE_ROOT = 14;
+    public static final int NODE_ROOT_SEND = 15;
+    public static final int NODE_RECEIVE = 16;
+    public static final int NODE_PROJECT = 17;
+    public static final int NODE_FILTER = 18;
+    public static final int NODE_MAP_SCAN = 19;
 
-    public static final int EXPRESSION_COLUMN = 19;
+    public static final int EXPRESSION_COLUMN = 20;
+    public static final int EXPRESSION_IS_NULL = 21;
 
-    public static final int TARGET_DESCRIPTOR_GENERIC = 20;
+    public static final int TARGET_DESCRIPTOR_GENERIC = 22;
 
-    public static final int QUERY_PATH = 21;
+    public static final int QUERY_PATH = 23;
 
     public static final int LEN = QUERY_PATH + 1;
 
@@ -102,6 +106,7 @@ public class SqlDataSerializerHook implements DataSerializerHook {
 
         constructors[ROW_HEAP] = arg -> new HeapRow();
         constructors[ROW_JOIN] = arg -> new JoinRow();
+        constructors[ROW_EMPTY] = arg -> EmptyRow.INSTANCE;
         constructors[ROW_BATCH_LIST] = arg -> new ListRowBatch();
         constructors[ROW_BATCH_EMPTY] = arg -> EmptyRowBatch.INSTANCE;
 
@@ -121,6 +126,7 @@ public class SqlDataSerializerHook implements DataSerializerHook {
         constructors[NODE_MAP_SCAN] = arg -> new MapScanPlanNode();
 
         constructors[EXPRESSION_COLUMN] = arg -> new ColumnExpression<>();
+        constructors[EXPRESSION_IS_NULL] = arg -> new IsNullPredicate();
 
         constructors[TARGET_DESCRIPTOR_GENERIC] = arg -> GenericQueryTargetDescriptor.INSTANCE;
 
