@@ -16,6 +16,7 @@
 
 package com.hazelcast.sql.impl;
 
+import com.hazelcast.cluster.Address;
 import com.hazelcast.core.HazelcastException;
 import com.hazelcast.sql.SqlErrorCode;
 
@@ -62,23 +63,27 @@ public final class QueryException extends HazelcastException {
     }
 
     public static QueryException memberConnection(UUID memberId) {
-        return error(SqlErrorCode.MEMBER_CONNECTION, "Connection to member is broken: " + memberId);
+        return error(SqlErrorCode.CONNECTION_PROBLEM, "Member cannot be reached: " + memberId);
     }
 
-    public static QueryException memberLeave(UUID memberId) {
-        return error(SqlErrorCode.MEMBER_LEAVE, "Participating member has left the topology: " + memberId);
+    public static QueryException memberConnection(Address address) {
+        return error(SqlErrorCode.CONNECTION_PROBLEM, "Member cannot be reached: " + address);
     }
 
-    public static QueryException memberLeave(Collection<UUID> memberIds) {
-        return error(SqlErrorCode.MEMBER_LEAVE, "Participating members has left the topology: " + memberIds);
+    public static QueryException memberConnection(Collection<UUID> memberIds) {
+        return error(SqlErrorCode.CONNECTION_PROBLEM, "Members cannot be reached: " + memberIds);
+    }
+
+    public static QueryException clientMemberConnection(UUID clientId) {
+        return error(SqlErrorCode.CONNECTION_PROBLEM, "Client cannot be reached: " + clientId);
     }
 
     public static QueryException timeout(long timeout) {
-        return error(SqlErrorCode.TIMEOUT, "Query has been cancelled due to timeout (" + timeout + " ms)");
+        return error(SqlErrorCode.TIMEOUT, "Query has been cancelled due to a timeout (" + timeout + " ms)");
     }
 
     public static QueryException cancelledByUser() {
-        return error(SqlErrorCode.CANCELLED_BY_USER, "Query was cancelled by user");
+        return error(SqlErrorCode.CANCELLED_BY_USER, "Query was cancelled by the user");
     }
 
     public static QueryException dataException(String message, Throwable cause) {
@@ -104,14 +109,5 @@ public final class QueryException extends HazelcastException {
      */
     public UUID getOriginatingMemberId() {
         return originatingMemberId;
-    }
-
-    @Override
-    public String getMessage() {
-        if (originatingMemberId != null) {
-            return super.getMessage() + " (code=" + code + ", originatingMemberId=" + originatingMemberId + ')';
-        } else {
-            return super.getMessage() + " (code=" + code + ')';
-        }
     }
 }

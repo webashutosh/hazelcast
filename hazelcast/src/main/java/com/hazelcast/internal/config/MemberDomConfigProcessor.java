@@ -18,6 +18,7 @@ package com.hazelcast.internal.config;
 
 import com.hazelcast.config.AliasedDiscoveryConfig;
 import com.hazelcast.config.AttributeConfig;
+import com.hazelcast.config.AutoDetectionConfig;
 import com.hazelcast.config.CRDTReplicationConfig;
 import com.hazelcast.config.CacheDeserializedValues;
 import com.hazelcast.config.CachePartitionLostListenerConfig;
@@ -103,6 +104,7 @@ import com.hazelcast.config.SocketInterceptorConfig;
 import com.hazelcast.config.SplitBrainProtectionConfig;
 import com.hazelcast.config.SplitBrainProtectionConfigBuilder;
 import com.hazelcast.config.SplitBrainProtectionListenerConfig;
+import com.hazelcast.config.SqlConfig;
 import com.hazelcast.config.SymmetricEncryptionConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.TopicConfig;
@@ -171,6 +173,7 @@ import static com.hazelcast.internal.config.ConfigSections.FLAKE_ID_GENERATOR;
 import static com.hazelcast.internal.config.ConfigSections.HOT_RESTART_PERSISTENCE;
 import static com.hazelcast.internal.config.ConfigSections.IMPORT;
 import static com.hazelcast.internal.config.ConfigSections.INSTANCE_NAME;
+import static com.hazelcast.internal.config.ConfigSections.INSTANCE_TRACKING;
 import static com.hazelcast.internal.config.ConfigSections.LICENSE_KEY;
 import static com.hazelcast.internal.config.ConfigSections.LIST;
 import static com.hazelcast.internal.config.ConfigSections.LISTENERS;
@@ -194,6 +197,7 @@ import static com.hazelcast.internal.config.ConfigSections.SECURITY;
 import static com.hazelcast.internal.config.ConfigSections.SERIALIZATION;
 import static com.hazelcast.internal.config.ConfigSections.SET;
 import static com.hazelcast.internal.config.ConfigSections.SPLIT_BRAIN_PROTECTION;
+import static com.hazelcast.internal.config.ConfigSections.SQL;
 import static com.hazelcast.internal.config.ConfigSections.TOPIC;
 import static com.hazelcast.internal.config.ConfigSections.USER_CODE_DEPLOYMENT;
 import static com.hazelcast.internal.config.ConfigSections.WAN_REPLICATION;
@@ -335,6 +339,10 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
             handleCPSubsystem(node);
         } else if (METRICS.isEqual(nodeName)) {
             handleMetrics(node);
+        } else if (INSTANCE_TRACKING.isEqual(nodeName)) {
+            handleInstanceTracking(node, config.getInstanceTrackingConfig());
+        } else if (SQL.isEqual(nodeName)) {
+            handleSql(node);
         } else {
             return true;
         }
@@ -1255,6 +1263,8 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
                 handleAliasedDiscoveryStrategy(joinConfig, child, name);
             } else if ("discovery-strategies".equals(name)) {
                 handleDiscoveryStrategies(joinConfig.getDiscoveryConfig(), child);
+            } else if ("auto-detection".equals(name)) {
+                handleAutoDetection(child, advancedNetworkConfig);
             }
         }
         joinConfig.verify();
@@ -1379,6 +1389,19 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
                 multicastConfig.setMulticastTimeToLive(parseInt(value));
             } else if ("trusted-interfaces".equals(cleanNodeName(n))) {
                 handleTrustedInterfaces(multicastConfig, n);
+            }
+        }
+    }
+
+    private void handleAutoDetection(Node node, boolean advancedNetworkConfig) {
+        JoinConfig join = joinConfig(advancedNetworkConfig);
+        AutoDetectionConfig autoDetectionConfig = join.getAutoDetectionConfig();
+        NamedNodeMap attributes = node.getAttributes();
+        for (int a = 0; a < attributes.getLength(); a++) {
+            Node att = attributes.item(a);
+            String value = getTextContent(att).trim();
+            if ("enabled".equals(lowerCaseInternal(att.getNodeName()))) {
+                autoDetectionConfig.setEnabled(getBooleanValue(value));
             }
         }
     }
@@ -2919,6 +2942,22 @@ public class MemberDomConfigProcessor extends AbstractDomConfigProcessor {
             if ("enabled".equals(att.getNodeName())) {
                 boolean enabled = getBooleanValue(getAttribute(node, "enabled"));
                 jmxConfig.setEnabled(enabled);
+            }
+        }
+    }
+
+    private void handleSql(Node node) {
+        SqlConfig sqlConfig = config.getSqlConfig();
+
+        for (Node child : childElements(node)) {
+            String nodeName = cleanNodeName(child);
+            String value = getTextContent(child).trim();
+            if ("executor-pool-size".equals(nodeName)) {
+                sqlConfig.setExecutorPoolSize(Integer.parseInt(value));
+            } else if ("operation-pool-size".equals(nodeName)) {
+                sqlConfig.setOperationPoolSize(Integer.parseInt(value));
+            } else if ("query-timeout-millis".equals(nodeName)) {
+                sqlConfig.setQueryTimeoutMillis(Long.parseLong(value));
             }
         }
     }

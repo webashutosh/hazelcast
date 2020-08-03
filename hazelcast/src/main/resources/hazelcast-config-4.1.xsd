@@ -71,6 +71,8 @@
                 <xs:element name="advanced-network" type="advanced-network" minOccurs="0" maxOccurs="1"/>
                 <xs:element name="cp-subsystem" type="cp-subsystem" minOccurs="0" maxOccurs="1"/>
                 <xs:element name="metrics" type="metrics" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="instance-tracking" type="instance-tracking" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="sql" type="sql" minOccurs="0" maxOccurs="1"/>
             </xs:choice>
             <xs:attribute name="id" type="xs:string" use="optional" default="default"/>
         </xs:complexType>
@@ -1494,6 +1496,15 @@
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
+    <xs:complexType name="auto-detection">
+        <xs:attribute name="enabled" type="xs:boolean" use="optional" default="true">
+            <xs:annotation>
+                <xs:documentation>
+                    Specifies whether the auto-detection discovery is enabled or not. Values can be true or false.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
     <xs:complexType name="join">
         <xs:annotation>
             <xs:documentation>
@@ -1510,6 +1521,7 @@
             <xs:element name="azure" type="aliased-discovery-strategy" minOccurs="0"/>
             <xs:element name="kubernetes" type="aliased-discovery-strategy" minOccurs="0"/>
             <xs:element name="eureka" type="aliased-discovery-strategy" minOccurs="0"/>
+            <xs:element name="auto-detection" type="aliased-discovery-strategy" minOccurs="0"/>
             <xs:element name="discovery-strategies" type="discovery-strategies" minOccurs="0" maxOccurs="1"/>
         </xs:all>
     </xs:complexType>
@@ -2661,6 +2673,7 @@
             <xs:element name="config-permission" type="base-permission" minOccurs="0" maxOccurs="1"/>
             <xs:element name="ring-buffer-permission" type="instance-permission" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="reliable-topic-permission" type="instance-permission" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="sql-permission" type="base-permission" minOccurs="0" maxOccurs="1"/>
         </xs:choice>
         <xs:attribute name="on-join-operation" type="permission-on-join-operation" use="optional" default="RECEIVE"/>
     </xs:complexType>
@@ -3962,7 +3975,7 @@
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <xs:element name="node-id-offset" type="xs:long" minOccurs="0" default="0">
                 <xs:annotation>
                     <xs:documentation>
@@ -3973,7 +3986,7 @@
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            
+
             <xs:element name="bits-sequence" minOccurs="0" default="6">
                 <xs:annotation>
                     <xs:documentation>
@@ -4815,6 +4828,121 @@
         </xs:attribute>
     </xs:complexType>
 
+    <xs:complexType name="instance-tracking">
+        <xs:annotation>
+            <xs:documentation>
+                Configures tracking of a running Hazelcast instance. For now, this is
+                limited to writing information about the Hazelcast instance to a file
+                while the instance is starting.
+                The file is overwritten on every start of the Hazelcast instance and if
+                multiple instance share the same file system, every instance will
+                overwrite the tracking file of a previously started instance.
+                If this instance is unable to write the file, the exception is logged and
+                the instance is allowed to start.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element name="file-name" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sets the name of the file which will contain the tracking metadata. If left unset
+                        a file named "Hazelcast.process" will be created in the directory as returned by
+                        System.getProperty("java.io.tmpdir").
+                        The filename can contain placeholders that will be resolved in the same way
+                        as placeholders for the format pattern.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="format-pattern" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sets the pattern used to render the contents of the instance tracking file.
+                        It may contain placeholders for these properties:
+                        - "product": The instance product name, e.g. "Hazelcast" or "Hazelcast Enterprise".
+                        - "version": The instance version.
+                        - "mode": The instance mode which can be "server", "embedded" or "client".
+                        - "start_timestamp": The timestamp of when the instance was started expressed the difference,
+                        measured in milliseconds, between the current time and midnight, January 1, 1970 UTC
+                        - "licensed": If this instance is using a license or not. The value 0 signifies
+                        that there is no license set and the value 1 signifies that a license is in use.
+                        - "pid": Attempts to get the process ID value. The algorithm does not guarantee to get the
+                        process ID on all JVMs and operating systems so please test before use. In case we are unable to
+                        get the PID, the value will be -1.
+
+                        The placeholders are defined by a $HZ_INSTANCE_TRACKING{ prefix and followed by }.
+                        For instance, a placeholder for the "start_timestamp" would be
+                        $HZ_INSTANCE_TRACKING{start_timestamp}.
+                        The placeholders are resolved in a fail-safe manner. Any incorrect syntax
+                        is ignored and only the known properties are resolved, placeholders for
+                        any parameters which do not have defined values will be ignored. This also
+                        means that if there is a missing closing bracket in one of the placeholders,
+                        the property name will be resolved as anything from the opening bracket
+                        to the next closing bracket, which might contain additional opening brackets.
+                        If unset, a JSON formatted output will be used.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" default="false">
+            <xs:annotation>
+                <xs:documentation>
+                    Enables or disables instance tracking.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="sql">
+        <xs:annotation>
+            <xs:documentation>
+                SQL service configuration.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element name="executor-pool-size" type="xs:int" minOccurs="0" maxOccurs="1" default="-1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sets the number of threads responsible for query execution.
+                        The default value -1 sets the pool size equal to the number of CPU cores, and should be good enough
+                        for the most workloads.
+                        Setting the value to less than the number of CPU cores will limit the degree of parallelism of the SQL
+                        subsystem. This may be beneficial if you would like to prioritize other CPU-intensive workloads on the
+                        same machine.
+                        It is not recommended to set the value of this parameter greater than the number of CPU cores because it
+                        may decrease the system's overall performance due to excessive context switches.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="operation-pool-size" type="xs:int" minOccurs="0" maxOccurs="1" default="-1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sets the number of threads responsible for network operations processing.
+                        When Hazelcast members execute a query, they send commands to each other over the network to coordinate
+                        the execution. This includes requests to start or stop query execution, or a request to process a batch
+                        of data. These commands are processed in a separate operation thread pool, to avoid frequent interruption
+                        of running query fragments.
+                        The default value -1 sets the pool size equal to the number of CPU cores, and should be good enough
+                        for the most workloads.
+                        Setting the value to less than the number of CPU cores may improve the overall performance on machines
+                        with large CPU count, because it will decrease the number of context switches.
+                        It is not recommended to set the value of this parameter greater than the number of CPU cores because it
+                        may decrease the system's overall performance due to excessive context switches.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="query-timeout-millis" type="xs:unsignedLong" minOccurs="0" maxOccurs="1" default="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sets the timeout in milliseconds that is applied to queries without an explicit timeout.
+                        It is possible to set a query timeout through the SqlQuery.setTimeout(long) method. If the query
+                        timeout is not set, then the value of this parameter will be used.
+                        Zero value means no timeout. Negative values are prohibited.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:all>
+    </xs:complexType>
+
     <xs:complexType name="realms">
         <xs:sequence>
             <xs:element name="realm" type="realm" minOccurs="0" maxOccurs="unbounded"/>
@@ -4855,7 +4983,7 @@
                 <xs:choice maxOccurs="unbounded">
                     <xs:element name="url" type="xs:string"/>
                     <xs:element name="socket-factory-class-name" type="xs:string" minOccurs="0"/>
-        
+
                     <xs:element name="parse-dn" type="xs:boolean" minOccurs="0"/>
                     <xs:element name="role-context" type="xs:string" minOccurs="0"/>
                     <xs:element name="role-filter" type="xs:string" minOccurs="0"/>
@@ -4865,7 +4993,7 @@
                     <xs:element name="role-recursion-max-depth" type="xs:int" minOccurs="0"/>
                     <xs:element name="role-search-scope" type="ldap-search-scope" minOccurs="0"/>
                     <xs:element name="user-name-attribute" type="xs:string" minOccurs="0"/>
-        
+
                     <xs:element name="system-user-dn" type="xs:string" minOccurs="0"/>
                     <xs:element name="system-user-password" type="xs:string" minOccurs="0"/>
                     <xs:element name="system-authentication" type="xs:string" minOccurs="0"/>

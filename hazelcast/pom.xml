@@ -80,13 +80,14 @@
                         <version>1.0</version>
                     </signature>
                     <ignores>
+                        <ignore>java.lang.invoke.MethodHandle</ignore>
                         <ignore>sun.misc.Unsafe</ignore>
                     </ignores>
                 </configuration>
                 <executions>
                     <execution>
                         <id>source-java8-check</id>
-                        <phase>compile</phase>
+                        <phase>test-compile</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
@@ -291,7 +292,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <phase>clean</phase>
@@ -319,21 +320,14 @@
         <dependency>
             <groupId>net.openhft</groupId>
             <artifactId>affinity</artifactId>
-            <version>3.2.2</version>
+            <version>3.2.3</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.5.8</version>
+            <version>${slf4j.api.version}</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -391,15 +385,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.api.version}</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
         <dependency>
             <groupId>net.spy</groupId>
             <artifactId>spymemcached</artifactId>

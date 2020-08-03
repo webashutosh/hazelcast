@@ -30,8 +30,6 @@ import com.hazelcast.config.CacheSimpleEntryListenerConfig;
 import com.hazelcast.config.CardinalityEstimatorConfig;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.CredentialsFactoryConfig;
-import com.hazelcast.config.WanBatchPublisherConfig;
-import com.hazelcast.config.WanCustomPublisherConfig;
 import com.hazelcast.config.DurableExecutorConfig;
 import com.hazelcast.config.EncryptionAtRestConfig;
 import com.hazelcast.config.EndpointConfig;
@@ -43,6 +41,7 @@ import com.hazelcast.config.HotRestartConfig;
 import com.hazelcast.config.HotRestartPersistenceConfig;
 import com.hazelcast.config.IcmpFailureDetectorConfig;
 import com.hazelcast.config.InMemoryFormat;
+import com.hazelcast.config.InstanceTrackingConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.InvalidConfigurationException;
 import com.hazelcast.config.ItemListenerConfig;
@@ -99,11 +98,14 @@ import com.hazelcast.config.SetConfig;
 import com.hazelcast.config.SplitBrainProtectionConfig;
 import com.hazelcast.config.SplitBrainProtectionConfigBuilder;
 import com.hazelcast.config.SplitBrainProtectionListenerConfig;
+import com.hazelcast.config.SqlConfig;
 import com.hazelcast.config.SymmetricEncryptionConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.config.TopicConfig;
 import com.hazelcast.config.VaultSecureStoreConfig;
+import com.hazelcast.config.WanBatchPublisherConfig;
 import com.hazelcast.config.WanConsumerConfig;
+import com.hazelcast.config.WanCustomPublisherConfig;
 import com.hazelcast.config.WanReplicationConfig;
 import com.hazelcast.config.WanReplicationRef;
 import com.hazelcast.config.WanSyncConfig;
@@ -333,6 +335,10 @@ public class HazelcastConfigBeanDefinitionParser extends AbstractHazelcastBeanDe
                         handleCPSubSystem(node);
                     } else if ("metrics".equals(nodeName)) {
                         handleMetrics(node);
+                    } else if ("instance-tracking".equals(nodeName)) {
+                        handleInstanceTracking(node);
+                    } else if ("sql".equals(nodeName)) {
+                        handleSql(node);
                     }
                 }
             }
@@ -832,6 +838,8 @@ public class HazelcastConfigBeanDefinitionParser extends AbstractHazelcastBeanDe
                     handleAliasedDiscoveryStrategy(child, joinConfigBuilder, name);
                 } else if ("discovery-strategies".equals(name)) {
                     handleDiscoveryStrategies(child, joinConfigBuilder);
+                } else if ("auto-detection".equals(name)) {
+                    handleAutoDetection(child, joinConfigBuilder);
                 }
             }
             networkConfigBuilder.addPropertyValue("join", beanDefinition);
@@ -2053,6 +2061,21 @@ public class HazelcastConfigBeanDefinitionParser extends AbstractHazelcastBeanDe
             return EndpointQualifier.resolve(type, getAttribute(node, "name"));
         }
 
+        private void handleInstanceTracking(Node node) {
+            BeanDefinitionBuilder configBuilder = createBeanBuilder(InstanceTrackingConfig.class);
+            fillAttributeValues(node, configBuilder);
+
+            for (Node child : childElements(node)) {
+                final String name = cleanNodeName(child);
+                if ("file-name".equals(name)) {
+                    configBuilder.addPropertyValue("fileName", getTextContent(child));
+                } else if ("format-pattern".equals(name)) {
+                    configBuilder.addPropertyValue("formatPattern", getTextContent(child));
+                }
+            }
+            this.configBuilder.addPropertyValue("instanceTrackingConfig", configBuilder.getBeanDefinition());
+        }
+
         private void handleMetrics(Node node) {
             BeanDefinitionBuilder metricsConfigBuilder = createBeanBuilder(MetricsConfig.class);
 
@@ -2081,6 +2104,26 @@ public class HazelcastConfigBeanDefinitionParser extends AbstractHazelcastBeanDe
             }
 
             configBuilder.addPropertyValue("metricsConfig", metricsConfigBuilder.getBeanDefinition());
+        }
+
+        private void handleSql(Node node) {
+            BeanDefinitionBuilder sqlConfigBuilder = createBeanBuilder(SqlConfig.class);
+
+            fillValues(node, sqlConfigBuilder, "executorPoolSize", "operationPoolSize", "queryTimeoutMillis");
+
+            for (Node child : childElements(node)) {
+                String nodeName = cleanNodeName(child);
+                String value = getTextContent(child).trim();
+                if ("executor-pool-size".equals(nodeName)) {
+                    sqlConfigBuilder.addPropertyValue("executorPoolSize", getIntegerValue("executor-pool-size", value));
+                } else if ("operation-pool-size".equals(nodeName)) {
+                    sqlConfigBuilder.addPropertyValue("operationPoolSize", getIntegerValue("operation-pool-size", value));
+                } else if ("query-timeout-millis".equals(nodeName)) {
+                    sqlConfigBuilder.addPropertyValue("queryTimeoutMillis", getLongValue("query-timeout-millis", value));
+                }
+            }
+
+            configBuilder.addPropertyValue("sqlConfig", sqlConfigBuilder.getBeanDefinition());
         }
     }
 }

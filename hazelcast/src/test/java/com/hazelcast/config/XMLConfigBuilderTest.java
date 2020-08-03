@@ -3242,7 +3242,7 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         MemberAddressProviderConfig providerConfig = advancedNetworkConfig.getMemberAddressProviderConfig();
 
         assertFalse(advancedNetworkConfig.isEnabled());
-        assertTrue(joinConfig.getMulticastConfig().isEnabled());
+        assertTrue(joinConfig.getAutoDetectionConfig().isEnabled());
         assertNull(fdConfig);
         assertFalse(providerConfig.isEnabled());
 
@@ -3438,6 +3438,23 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
 
     @Override
     @Test
+    public void testInstanceTrackingConfig() {
+        String xml = HAZELCAST_START_TAG
+                + "<instance-tracking enabled=\"true\">"
+                + "  <file-name>/dummy/file</file-name>"
+                + "  <format-pattern>dummy-pattern with $HZ_INSTANCE_TRACKING{placeholder} and $RND{placeholder}</format-pattern>"
+                + "</instance-tracking>"
+                + HAZELCAST_END_TAG;
+        Config config = new InMemoryXmlConfig(xml);
+        InstanceTrackingConfig trackingConfig = config.getInstanceTrackingConfig();
+        assertTrue(trackingConfig.isEnabled());
+        assertEquals("/dummy/file", trackingConfig.getFileName());
+        assertEquals("dummy-pattern with $HZ_INSTANCE_TRACKING{placeholder} and $RND{placeholder}",
+                trackingConfig.getFormatPattern());
+    }
+
+    @Override
+    @Test
     public void testMetricsConfigMasterSwitchDisabled() {
         String xml = HAZELCAST_START_TAG
                 + "<metrics enabled=\"false\"/>"
@@ -3477,5 +3494,22 @@ public class XMLConfigBuilderTest extends AbstractConfigBuilderTest {
         assertTrue(metricsConfig.isEnabled());
         assertTrue(metricsConfig.getManagementCenterConfig().isEnabled());
         assertFalse(metricsConfig.getJmxConfig().isEnabled());
+    }
+
+    @Override
+    @Test
+    public void testSqlConfig() {
+        String xml = HAZELCAST_START_TAG
+            + "<sql>\n"
+            + "  <executor-pool-size>10</executor-pool-size>\n"
+            + "  <operation-pool-size>20</operation-pool-size>\n"
+            + "  <query-timeout-millis>30</query-timeout-millis>\n"
+            + "</sql>"
+            + HAZELCAST_END_TAG;
+        Config config = new InMemoryXmlConfig(xml);
+        SqlConfig sqlConfig = config.getSqlConfig();
+        assertEquals(10, sqlConfig.getExecutorPoolSize());
+        assertEquals(20, sqlConfig.getOperationPoolSize());
+        assertEquals(30L, sqlConfig.getQueryTimeoutMillis());
     }
 }

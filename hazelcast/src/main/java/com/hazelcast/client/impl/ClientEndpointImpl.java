@@ -125,6 +125,11 @@ public final class ClientEndpointImpl implements ClientEndpoint {
     }
 
     @Override
+    public String getClientVersion() {
+        return clientVersion;
+    }
+
+    @Override
     public void setClientVersion(String version) {
         clientVersion = version;
     }
@@ -269,6 +274,7 @@ public final class ClientEndpointImpl implements ClientEndpoint {
                 + ", clientVersion=" + clientVersion
                 + ", creationTime=" + creationTime
                 + ", latest clientAttributes=" + getClientAttributes()
+                + ", labels=" + labels
                 + '}';
     }
 

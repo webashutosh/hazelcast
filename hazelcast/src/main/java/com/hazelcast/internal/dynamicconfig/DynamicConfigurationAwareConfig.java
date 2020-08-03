@@ -27,6 +27,7 @@ import com.hazelcast.config.DurableExecutorConfig;
 import com.hazelcast.config.ExecutorConfig;
 import com.hazelcast.config.FlakeIdGeneratorConfig;
 import com.hazelcast.config.HotRestartPersistenceConfig;
+import com.hazelcast.config.InstanceTrackingConfig;
 import com.hazelcast.config.InvalidConfigurationException;
 import com.hazelcast.config.ListConfig;
 import com.hazelcast.config.ListenerConfig;
@@ -46,6 +47,7 @@ import com.hazelcast.config.RingbufferConfig;
 import com.hazelcast.config.ScheduledExecutorConfig;
 import com.hazelcast.config.SecurityConfig;
 import com.hazelcast.config.SerializationConfig;
+import com.hazelcast.config.SqlConfig;
 import com.hazelcast.config.WanReplicationConfig;
 import com.hazelcast.internal.config.ServicesConfig;
 import com.hazelcast.config.SetConfig;
@@ -1085,6 +1087,30 @@ public class DynamicConfigurationAwareConfig extends Config {
     @Nonnull
     @Override
     public Config setMetricsConfig(@Nonnull MetricsConfig metricsConfig) {
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    @Nonnull
+    @Override
+    public InstanceTrackingConfig getInstanceTrackingConfig() {
+        return staticConfig.getInstanceTrackingConfig();
+    }
+
+    @Nonnull
+    @Override
+    public Config setInstanceTrackingConfig(@Nonnull InstanceTrackingConfig instanceTrackingConfig) {
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    @Nonnull
+    @Override
+    public SqlConfig getSqlConfig() {
+        return staticConfig.getSqlConfig();
+    }
+
+    @Nonnull
+    @Override
+    public Config setSqlConfig(@Nonnull SqlConfig sqlConfig) {
         throw new UnsupportedOperationException("Unsupported operation");
     }
 }

@@ -61,6 +61,7 @@ import java.util.Set;
 
 import static com.hazelcast.config.PermissionConfig.PermissionType.ALL;
 import static com.hazelcast.config.PermissionConfig.PermissionType.CONFIG;
+import static com.hazelcast.config.PermissionConfig.PermissionType.SQL;
 import static com.hazelcast.config.PermissionConfig.PermissionType.TRANSACTION;
 import static com.hazelcast.internal.config.AliasedDiscoveryConfigUtils.aliasedDiscoveryConfigsFrom;
 import static com.hazelcast.internal.nio.IOUtil.closeResource;
@@ -166,6 +167,8 @@ public class ConfigXmlGenerator {
         splitBrainProtectionXmlGenerator(gen, config);
         cpSubsystemConfig(gen, config);
         metricsConfig(gen, config);
+        instanceTrackingConfig(gen, config);
+        sqlConfig(gen, config);
         userCodeDeploymentConfig(gen, config);
 
         xml.append("</hazelcast>");
@@ -395,7 +398,7 @@ public class ConfigXmlGenerator {
     }
 
     private static void appendSecurityPermissions(XmlGenerator gen, String tag, Set<PermissionConfig> cpc, Object... attributes) {
-        final List<PermissionConfig.PermissionType> clusterPermTypes = asList(ALL, CONFIG, TRANSACTION);
+        final List<PermissionConfig.PermissionType> clusterPermTypes = asList(ALL, CONFIG, TRANSACTION, SQL);
 
         if (!cpc.isEmpty()) {
             gen.open(tag, attributes);
@@ -812,6 +815,7 @@ public class ConfigXmlGenerator {
 
         JoinConfig join = netCfg.getJoin();
         gen.open("join");
+        autoDetectionConfigXmlGenerator(gen, join);
         multicastConfigXmlGenerator(gen, join);
         tcpConfigXmlGenerator(gen, join);
         aliasedDiscoveryConfigsGenerator(gen, aliasedDiscoveryConfigsFrom(join));
@@ -839,6 +843,7 @@ public class ConfigXmlGenerator {
 
         JoinConfig join = netCfg.getJoin();
         gen.open("join");
+        autoDetectionConfigXmlGenerator(gen, join);
         multicastConfigXmlGenerator(gen, join);
         tcpConfigXmlGenerator(gen, join);
         aliasedDiscoveryConfigsGenerator(gen, aliasedDiscoveryConfigsFrom(join));
@@ -1252,6 +1257,10 @@ public class ConfigXmlGenerator {
                 "comparator-class-name", comparatorClassName);
     }
 
+    private static void autoDetectionConfigXmlGenerator(XmlGenerator gen, JoinConfig join) {
+        gen.open("auto-detection", "enabled", join.getAutoDetectionConfig().isEnabled()).close();
+    }
+
     private static void multicastConfigXmlGenerator(XmlGenerator gen, JoinConfig join) {
         MulticastConfig mcConfig = join.getMulticastConfig();
         gen.open("multicast", "enabled", mcConfig.isEnabled(), "loopbackModeEnabled", mcConfig.isLoopbackModeEnabled())
@@ -1573,6 +1582,14 @@ public class ConfigXmlGenerator {
         gen.close().close();
     }
 
+    private static void instanceTrackingConfig(XmlGenerator gen, Config config) {
+        InstanceTrackingConfig trackingConfig = config.getInstanceTrackingConfig();
+        gen.open("instance-tracking", "enabled", trackingConfig.isEnabled())
+           .node("file-name", trackingConfig.getFileName())
+           .node("format-pattern", trackingConfig.getFormatPattern())
+           .close();
+    }
+
     private static void metricsConfig(XmlGenerator gen, Config config) {
         MetricsConfig metricsConfig = config.getMetricsConfig();
         gen.open("metrics", "enabled", metricsConfig.isEnabled())
@@ -1583,6 +1600,15 @@ public class ConfigXmlGenerator {
            .close()
            .node("collection-frequency-seconds", metricsConfig.getCollectionFrequencySeconds())
            .close();
+    }
+
+    private static void sqlConfig(XmlGenerator gen, Config config) {
+        SqlConfig sqlConfig = config.getSqlConfig();
+        gen.open("sql")
+            .node("executor-pool-size", sqlConfig.getExecutorPoolSize())
+            .node("operation-pool-size", sqlConfig.getOperationPoolSize())
+            .node("query-timeout-millis", sqlConfig.getQueryTimeoutMillis())
+            .close();
     }
 
     private static void userCodeDeploymentConfig(XmlGenerator gen, Config config) {
